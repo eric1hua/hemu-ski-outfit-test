@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>hemu outfit test</title>
+<style>body{margin:0;background:#20303c}#c{display:block} #log{position:fixed;left:8px;top:8px;color:#fff;font:13px monospace;white-space:pre}</style>
+<script type="importmap">
+{"imports":{
+  "three": "./three.module.js",
+  "three/addons/": "./addons/"
+}}
+</script></head>
+<body><canvas id="c"></canvas><div id="log">loading…</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GearSystem } from './gear-system.mjs';
+
+const log = (s) => { document.getElementById('log').textContent = s; };
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setSize(900, 700); renderer.setPixelRatio(1);
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#2b414e');
+const camera = new THREE.PerspectiveCamera(35, 900/700, 0.1, 50);
+camera.position.set(0.55, 1.05, 2.6); camera.lookAt(0, 0.85, 0);
+scene.add(new THREE.HemisphereLight(0xfff2dd, 0x33424e, 2.2));
+const sun = new THREE.DirectionalLight(0xffe8c0, 2.5); sun.position.set(1.5, 2.5, 1.5); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(1.4, 40), new THREE.MeshLambertMaterial({ color: '#cfe0e8' }));
+ground.rotation.x = -Math.PI/2; scene.add(ground);
+
+const loader = new GLTFLoader();
+const manifest = await (await fetch('./gear-manifest.json')).json();
+const bySlot = Object.fromEntries(manifest.items.map(i => [i.slot, i]));
+const load = (rel) => loader.loadAsync('./' + rel);
+
+// rider faces +Z in file space; turn her toward camera-left for a 3/4 view
+const base = await load('assets/base_female_partitioned.glb');
+const gear = new GearSystem(base.scene);
+const holder = new THREE.Group(); holder.rotation.y = 0.5; holder.add(base.scene); scene.add(holder);
+// scale unit-height model to her in-game 1.8 m like RiderModel does
+holder.scale.setScalar(1.8);
+
+scene.updateMatrixWorld(true); // attach() in GearSystem relies on current world matrices
+const helm = await load(bySlot.helmet.file);
+gear.wear(bySlot.helmet, helm.scene);
+const gog = await load(bySlot.goggles.file);
+gear.wear(bySlot.goggles, gog.scene);
+gear.setPalette('helmet', { main: '#ee4f2c' });
+
+// pose: walk mid-stride + head turned, as in the numeric test
+const mixer = new THREE.AnimationMixer(base.scene);
+const walk = base.animations.find(a => a.name === 'walk.001');
+mixer.clipAction(walk).play(); mixer.setTime(0.55);
+const head = gear.bone('Head');
+head.quaternion.copy(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.12, -0.55, 0)).multiply(head.quaternion));
+scene.updateMatrixWorld(true);
+renderer.render(scene, camera);
+log(`OK parts=${gear.parts.size} worn=${[...gear.worn.keys()].join('+')} walk=${walk.duration.toFixed(2)}s`);
+window.__done = true;
+</script></body></html>
