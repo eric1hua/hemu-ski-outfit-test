@@ -18,7 +18,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'),
 renderer.setSize(900, 700); renderer.setPixelRatio(1);
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#2b414e');
 const camera = new THREE.PerspectiveCamera(35, 900/700, 0.1, 50);
-camera.position.set(0.55, 1.05, 2.6); camera.lookAt(0, 0.85, 0);
+camera.position.set(0.85, 1.35, 3.9); camera.lookAt(0, 0.92, 0);
 scene.add(new THREE.HemisphereLight(0xfff2dd, 0x33424e, 2.2));
 const sun = new THREE.DirectionalLight(0xffe8c0, 2.5); sun.position.set(1.5, 2.5, 1.5); scene.add(sun);
 const ground = new THREE.Mesh(new THREE.CircleGeometry(1.4, 40), new THREE.MeshLambertMaterial({ color: '#cfe0e8' }));
